@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# @file generate
+# Generate a catalog of web app screenshots
+# @author Alister Lewis-Bowen <bowena@vmware.com>
+
+[[ -n $DEBUG ]] && set -x
+set -eou pipefail
+
+# shellcheck disable=SC1091
+source config.sh
+
+OPT="${1:-}"
+SCREENS=()
+CONTENT_HTML=''
+
+install_shot-scraper() {
+    pip install shot-scraper && shot-scraper install
+}
+
+generate_auth_context() {
+    shot-scraper auth "$APP_STACK_LOGIN_URL" "$SS_AUTH_CONTEXT"
+    [[ -d "$SCREENS_DIR" ]] && rm -fR "$SCREENS_DIR"
+}
+
+screen_name() {
+    local screen="$1"
+    local breakpoint="$2"
+    # shellcheck disable=SC2155
+    local filename=$(echo "${screen}-${breakpoint}.png" | tr "/" "_")
+    echo "${SCREENS_DIR}/${filename}"
+}
+
+screen_html() {
+    local screen="$1"
+    local filename="$2"
+    local breakpoint="$3"
+
+    CONTENT_HTML=${CONTENT_HTML//#SCREEN_TITLE#/$screen}
+    if [[ $breakpoint == "${BREAKPOINTS[0]}" ]]; then
+        CONTENT_HTML=${CONTENT_HTML//#LARGE_BP_TITLE#/$breakpoint}
+        CONTENT_HTML=${CONTENT_HTML//#LARGE_BP_IMAGE#/$"$(basename "$filename")"}
+    elif [[ $breakpoint == "${BREAKPOINTS[1]}" ]]; then
+        CONTENT_HTML=${CONTENT_HTML//#MEDIUM_BP_TITLE#/$breakpoint}
+        CONTENT_HTML=${CONTENT_HTML//#MEDIUM_BP_IMAGE#/$"$(basename "$filename")"}
+    elif [[ $breakpoint == "${BREAKPOINTS[2]}" ]]; then
+        CONTENT_HTML=${CONTENT_HTML//#SMALL_BP_TITLE#/$breakpoint}
+        CONTENT_HTML=${CONTENT_HTML//#SMALL_BP_IMAGE#/$"$(basename "$filename")"}
+    fi
+}
+
+capture_screen() {
+    local screen="$1"
+    local url="${APP_STACK_URL}/${screen}"
+    local filename
+
+    # shellcheck disable=SC2155
+    CONTENT_HTML="${CONTENT_HTML}"$(<assets/section.tmpl.html)
+
+    for breakpoint in "${BREAKPOINTS[@]}"; do
+        filename="$(screen_name "$screen" "$breakpoint")"
+
+        screen_html "$screen" "$filename" "$breakpoint"
+
+        [[ -f "$filename" ]] && continue
+        shot-scraper "$url" \
+            -a "$SS_AUTH_CONTEXT" \
+            --wait "$SS_WAIT" \
+            --width "$breakpoint" \
+            --height "$SS_HEIGHT" \
+            -o "$filename"
+    done
+}
+
+# shellcheck disable=SC2120
+generate_catalog() {
+    local dir="${1:-$SCREENS_DIR}"
+    local catalog_html="${dir}/catalog.html"
+    cat assets/catalog.tmpl.html > "$catalog_html"
+
+    [[ -e latest ]] && rm latest
+
+    for screen in "${SCREENS[@]}"; do
+        capture_screen "$screen"
+    done
+
+    CONTENT_HTML=${CONTENT_HTML//$'\n'/#CR#}
+    sed -i '' "s|#CONTENT#|$CONTENT_HTML|" "$catalog_html"
+    sed -i '' "s|#CR#|\n|g" "$catalog_html"
+
+    ln -s "$dir" latest 
+}
+
+generate_pdf() {
+    local dir="${1:-$SCREENS_DIR}"
+    local files=()
+    mapfile -d $'\0' files < <(find "$dir" -name "*.png" | sort | xargs)
+    # shellcheck disable=SC2068
+    img2pdf --output "${dir}/catalog.pdf" ${files[@]}
+}
+
+mapfile -t SCREENS < screens.txt
+
+case $OPT in
+    '')
+        [[ -d "$SCREENS_DIR" ]] || mkdir "$SCREENS_DIR"
+        ;;
+    auth)
+        generate_auth_context
+        exit
+        ;;
+    pdf)
+        generate_pdf "${2:-}"
+        exit
+        ;;
+    *)  # Assume screen directory provided
+        [[ -d "$OPT" ]] || {
+            echo "Unable to find a screens directory called $OPT"
+            exit
+        }
+        SCREENS_DIR="$OPT"
+        
+esac
+
+generate_catalog
