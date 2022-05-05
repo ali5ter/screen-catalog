@@ -25,6 +25,7 @@ generate_auth_context() {
 screen_name() {
     local screen="$1"
     local breakpoint="$2"
+    screen="$(printf '%b\n' "${screen//%/\\x}")"
     # shellcheck disable=SC2155
     local filename=$(echo "${screen}-${breakpoint}.png" | tr "/" "_")
     echo "${SCREENS_DIR}/${filename}"
