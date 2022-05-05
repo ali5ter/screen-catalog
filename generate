@@ -18,7 +18,7 @@ install_shot-scraper() {
 }
 
 generate_auth_context() {
-    shot-scraper auth "$APP_STACK_LOGIN_URL" "$SS_AUTH_CONTEXT"
+    shot-scraper auth "$APP_LOGIN_URL" "$SS_AUTH_CONTEXT"
     [[ -d "$SCREENS_DIR" ]] && rm -fR "$SCREENS_DIR"
 }
 
@@ -50,7 +50,7 @@ screen_html() {
 
 capture_screen() {
     local screen="$1"
-    local url="${APP_STACK_URL}/${screen}"
+    local url="${APP_URL}/${screen}"
     local filename
 
     # shellcheck disable=SC2155
