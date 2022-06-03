@@ -81,6 +81,7 @@ generate_catalog() {
     [[ -e latest ]] && rm latest
 
     for screen in "${SCREENS[@]}"; do
+        [[ "${screen:0:1}" == '#' || "${screen:0:1}" == '' || "${screen:0:1}" == ' ' ]] && continue
         capture_screen "$screen"
     done
 
