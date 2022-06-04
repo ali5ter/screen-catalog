@@ -22,12 +22,12 @@ generate_auth_context() {
     [[ -d "$SCREENS_DIR" ]] && rm -fR "$SCREENS_DIR"
 }
 
-screen_name() {
+screen_filename() {
     local screen="$1"
     local breakpoint="$2"
-    screen="$(printf '%b\n' "${screen//%/\\x}")"
-    # shellcheck disable=SC2155
-    local filename=$(echo "${screen}-${breakpoint}.png" | tr "/" "_")
+    local filename
+    filename=$(echo "${screen}-${breakpoint}.png" | tr '/?=()%' '_')
+    filename=${filename:0:255}
     echo "${SCREENS_DIR}/${filename}"
 }
 
@@ -58,7 +58,7 @@ capture_screen() {
     CONTENT_HTML="${CONTENT_HTML}"$(<assets/section.tmpl.html)
 
     for breakpoint in "${BREAKPOINTS[@]}"; do
-        filename="$(screen_name "$screen" "$breakpoint")"
+        filename="$(screen_filename "$screen" "$breakpoint")"
 
         screen_html "$screen" "$filename" "$breakpoint"
 
