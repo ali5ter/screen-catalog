@@ -52,7 +52,16 @@ screen_html() {
 capture_screen() {
     local screen="$1"
     local url="${APP_URL}/${screen}"
-    local filename
+    local context="${SS_AUTH_CONTEXT:-}"
+    local wait="${SS_WAIT:-}"
+    local height="${SS_HEIGHT:-}"
+    local filename=''
+    local options=''
+
+    # shellcheck disable=SC2089
+    [[ -f "$context" ]] && options="$options -a $context"
+    [[ -n "$wait" ]] && options="$options --wait $wait"
+    [[ -n "$height" ]] && options="$options --height $height"
 
     # shellcheck disable=SC2155
     CONTENT_HTML="${CONTENT_HTML}"$(<assets/section.tmpl.html)
@@ -63,11 +72,11 @@ capture_screen() {
         screen_html "$screen" "$filename" "$breakpoint"
 
         [[ -f "$filename" ]] && continue
+        # shellcheck disable=SC2090
+        # shellcheck disable=SC2086
         shot-scraper "$url" \
-            -a "$SS_AUTH_CONTEXT" \
-            --wait "$SS_WAIT" \
+            $options \
             --width "$breakpoint" \
-            --height "$SS_HEIGHT" \
             -o "$filename"
     done
 }

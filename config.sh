@@ -7,13 +7,13 @@
 
 # shellcheck disable=SC2034
 APP_LOGIN_URL='https://login.foo.com'
-APP_URL="https://service.foo.com"
+APP_URL='https://service.foo.com'
 
 # shot-scraper configuration -------------------------------------------------
 
 SS_AUTH_CONTEXT="${HOME}/.config/shot-scraper/service-foo-com.json"
-SS_WAIT='2000' # milliseconds
-SS_HEIGHT='1080' # px
+# SS_WAIT=2000 # milliseconds (optional)
+# SS_HEIGHT=1080 # px (optional)
 
 # Screen shot configuration --------------------------------------------------
 
