@@ -1,3 +1,5 @@
+> **⚠️ Archived 2025-11-24. No longer maintained.**
+
 # Screen catalog
 A script to generate a catalog of web application screens at different breakpoints.
 
